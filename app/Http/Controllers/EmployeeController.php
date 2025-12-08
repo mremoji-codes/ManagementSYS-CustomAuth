@@ -4,53 +4,82 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
-    // 🔹 Employee Dashboard
+    // Employee Dashboard
     public function dashboard()
     {
         $user = Auth::user();
         return view('employee.dashboard', compact('user'));
     }
 
-    // 🔹 Edit Profile Page
+    // Edit Profile Page
     public function edit()
     {
         $user = Auth::user();
         return view('employee.edit', compact('user'));
     }
 
-    // 🔹 Update Profile Info
+    // Update Profile Info
     public function update(Request $request)
     {
         $user = Auth::user();
 
-        // ✅ Validate input fields
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+        // Base validation rules (for both employer & employee)
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'mobile' => 'nullable|string|max:20',
             'sex' => 'nullable|string|max:10',
             'date_of_birth' => 'nullable|date',
-        ]);
+            'age' => 'nullable|integer|min:16',
+            'position' => 'nullable|string|max:255',
+            'date_started' => 'nullable|date',
+            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ];
 
-        // ✅ Update fields
-        $user->update([
-            'first_name' => $request->first_name,
-            'middle_name' => $request->middle_name,
-            'last_name' => $request->last_name,
-            // Keep the combined full name for easier display in some pages
-            'name' => trim($request->first_name . ' ' . $request->middle_name . ' ' . $request->last_name),
-            'email' => $request->email,
-            'mobile' => $request->mobile,
-            'sex' => $request->sex,
-            'date_of_birth' => $request->date_of_birth,
-        ]);
+        // Salary validation ONLY if employer is editing
+        if ($user->role === 'employer') {
+            $rules['salary'] = 'nullable|numeric|min:0';
+        }
 
-        // ✅ Redirect back with success message
-        return redirect()->back()->with('success', 'Profile updated successfully!');
+        $request->validate($rules);
+
+        // Update fields for everyone
+        $updateData = [
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'mobile' => $request->input('mobile'),
+            'sex' => $request->input('sex'),
+            'age' => $request->input('age'),
+            'date_of_birth' => $request->input('date_of_birth'),
+            'position' => $request->input('position'),
+            'date_started' => $request->input('date_started'),
+    
+        ];
+
+        // Only employer can update salary
+        if ($user->role === 'employer') {
+            $updateData['salary'] = $request->input('salary');
+        }
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+
+            // Delete old photo
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+
+            // Save new photo
+            $path = $request->file('profile_photo')->store('profile_photos', 'public');
+            $updateData['profile_photo'] = $path;
+        }
+
+        $user->update($updateData);
+
+        return redirect()->route('employee.dashboard')->with('success', 'Profile updated successfully!');
     }
-}
+}   // ← THIS WAS MISSING

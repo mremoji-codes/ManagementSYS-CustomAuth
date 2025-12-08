@@ -29,25 +29,42 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'in:employee,employer'],
+            'mobile' => ['nullable', 'string', 'max:20'],
+            'age' => ['nullable', 'integer', 'min:1'],
+            'sex' => ['nullable', 'in:Male,Female'],
+            'date_of_birth' => ['nullable', 'date'],
+            'date_started' => ['nullable', 'date'],
         ]);
+        // dd("validation passed");
+
+        // Combine name fields into a single "name" for display
+        ;
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'mobile' => $request->mobile,
+            'age' => $request->age,
+            'sex' => $request->sex,
+            'date_of_birth' => $request->date_of_birth,
+            'date_started' => $request->date_started,
         ]);
+
+        // dd("user creation passed");
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        // Redirect user based on role
+        // Redirect based on role
         return $user->role === 'employer'
             ? redirect()->route('employer.dashboard')
             : redirect()->route('employee.dashboard');
