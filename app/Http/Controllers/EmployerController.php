@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage; // Import Storage facade
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password; // Added for secure password validation
 
 class EmployerController extends Controller
 {
@@ -20,14 +21,20 @@ class EmployerController extends Controller
     public function dashboard()
     {
         $this->ensureEmployer();
+
         $employeeCount = User::where('role', 'employee')->count();
-        // Calculate new hires in last 30 days
         $newHiresCount = User::where('role', 'employee')
                              ->where('date_started', '>=', now()->subDays(30))
                              ->count();
+
+        $employerCount = User::where('role', 'employer')->count();
                              
-        return view('employer.dashboard', compact('employeeCount', 'newHiresCount'));
+        return view('employer.dashboard', compact('employeeCount', 'newHiresCount', 'employerCount'));
     }
+
+    // =========================================================================
+    // EMPLOYER SELF-PROFILE METHODS
+    // =========================================================================
 
     public function showProfile()
     {
@@ -35,6 +42,53 @@ class EmployerController extends Controller
         $employer = Auth::user();
         return view('employer.profile.show', compact('employer'));
     }
+
+    public function editProfile()
+    {
+        $this->ensureEmployer();
+        $employer = Auth::user(); 
+        return view('employer.profile.edit', compact('employer'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $this->ensureEmployer();
+        $employer = Auth::user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $employer->id,
+        ]);
+
+        $employer->update($validated);
+
+        return redirect()->route('employer.profile.show')
+                         ->with('success', 'Profile updated successfully!');
+    }
+
+    /**
+     * Handle Password Update for the Employer
+     */
+    public function updatePassword(Request $request)
+    {
+        $this->ensureEmployer();
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'], // Checks if it matches current DB password
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with('success', 'Password updated successfully!');
+    }
+
+    // =========================================================================
+    // EMPLOYEE MANAGEMENT METHODS
+    // =========================================================================
 
     public function index()
     {
@@ -49,9 +103,6 @@ class EmployerController extends Controller
         return view('employer.employees.create');
     }
 
-    // =========================================================================
-    // UPDATED STORE METHOD (Handles Image Upload for NEW Employees)
-    // =========================================================================
     public function store(Request $request)
     {
         $this->ensureEmployer();
@@ -69,7 +120,6 @@ class EmployerController extends Controller
             'position' => 'nullable|string|max:255',
             'salary' => 'nullable|numeric|min:0',
             'date_started' => 'nullable|date',
-            // VALIDATE THE IMAGE
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -79,10 +129,8 @@ class EmployerController extends Controller
             $validated['last_name']
         );
 
-        // Handle File Upload
         $profilePhotoPath = null;
         if ($request->hasFile('profile_photo')) {
-            // This saves the file to storage/app/public/profile_photos
             $profilePhotoPath = $request->file('profile_photo')->store('profile_photos', 'public');
         }
 
@@ -97,7 +145,7 @@ class EmployerController extends Controller
             'position' => $validated['position'] ?? null,
             'salary' => $validated['salary'] ?? null,
             'date_started' => $validated['date_started'] ?? null,
-            'profile_photo' => $profilePhotoPath, // Save the path
+            'profile_photo' => $profilePhotoPath,
             'role' => 'employee',
             'status' => 'active',
         ]);
@@ -118,13 +166,9 @@ class EmployerController extends Controller
         return view('employer.employees.edit', compact('employee'));
     }
 
-    // =========================================================================
-    // UPDATED UPDATE METHOD (Handles Image Upload for EXISTING Employees)
-    // =========================================================================
     public function update(Request $request, $id)
     {
         $this->ensureEmployer();
-
         $employee = User::findOrFail($id);
 
         $validated = $request->validate([
@@ -140,7 +184,6 @@ class EmployerController extends Controller
             'position' => 'nullable|string|max:255',
             'salary' => 'nullable|numeric|min:0',
             'date_started' => 'nullable|date',
-            // VALIDATE THE IMAGE
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -162,14 +205,10 @@ class EmployerController extends Controller
             'date_started' => $validated['date_started'] ?? null,
         ];
 
-        // Handle Image Upload
         if ($request->hasFile('profile_photo')) {
-            // Delete old photo if it exists to save space
             if ($employee->profile_photo && Storage::disk('public')->exists($employee->profile_photo)) {
                 Storage::disk('public')->delete($employee->profile_photo);
             }
-
-            // Store new photo
             $path = $request->file('profile_photo')->store('profile_photos', 'public');
             $updateData['profile_photo'] = $path;
         }
@@ -189,7 +228,6 @@ class EmployerController extends Controller
         $this->ensureEmployer();
         $employee = User::findOrFail($id);
         
-        // Optional: Delete photo when user is deleted
         if ($employee->profile_photo) {
              Storage::disk('public')->delete($employee->profile_photo);
         }

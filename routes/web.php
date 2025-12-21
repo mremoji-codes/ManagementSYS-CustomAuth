@@ -130,8 +130,16 @@ Route::middleware(['auth', 'verified'])
         // 🟢 Employer Dashboard Route
         Route::get('/dashboard', [EmployerController::class, 'dashboard'])->name('dashboard');
 
-        // 🟢 Employer Profile Route (View/Show)
+        // 🟢 Employer Profile Routes
         Route::get('/profile', [EmployerController::class, 'showProfile'])->name('profile.show');
+        
+        // --- PROFILE EDIT & UPDATE ROUTES ---
+        Route::get('/profile/edit', [EmployerController::class, 'editProfile'])->name('profile.edit');
+        Route::put('/profile/update', [EmployerController::class, 'updateProfile'])->name('profile.update');
+        
+        // 🔑 NEW: PASSWORD UPDATE ROUTE
+        Route::put('/profile/password', [EmployerController::class, 'updatePassword'])->name('profile.password.update');
+        // ------------------------------
         
         // Employee CRUD Routes (EXISTING)
         Route::get('/employees', [EmployerController::class, 'index'])->name('employees.index');

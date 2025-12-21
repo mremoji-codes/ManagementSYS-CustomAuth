@@ -8,28 +8,59 @@
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/m_logo.svg') }}?v=1">
     
     <style>
-        body { background-color: #f8f9fa; } /* Light background */
-        .profile-photo {
-            width: 96px; /* w-24 */
-            height: 96px; /* h-24 */
+        :root {
+            --brand-emerald: #10b981;
+            --bg-canvas: #f8fafc;
+        }
+        body { background-color: var(--bg-canvas); font-family: 'Inter', system-ui, sans-serif; }
+        
+        .profile-photo-wrapper {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             overflow: hidden;
             border: 4px solid #ffffff; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: #e2e8f0;
         }
-        .file-input-custom .form-control-file {
-            padding: 0.5rem 1rem;
-            background-color: #eef2ff; /* indigo-50 */
-            color: #4f46e5; /* indigo-700 */
+
+        .card {
             border: none;
-            border-radius: 50rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.15s ease-in-out;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
         }
-        .file-input-custom .form-control-file:hover {
-             background-color: #e0e7ff; /* indigo-100 */
+
+        .form-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 0.5rem;
         }
+
+        .form-control, .form-select {
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--brand-emerald);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-success {
+            background-color: var(--brand-emerald);
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 2rem;
+            font-weight: 700;
+        }
+
+        .cursor-not-allowed { cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -37,16 +68,18 @@
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5">
+                <div class="card p-4 p-md-5">
                     
-                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                        <h2 class="fs-3 fw-bold text-dark">Edit My Profile</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
+                        <div>
+                            <h2 class="h3 fw-bold text-dark mb-1">Edit My Profile</h2>
+                            <p class="text-muted small mb-0">Personalize your account and identification details.</p>
+                        </div>
                     </div>
 
                     @if ($errors->any())
-                        <div class="alert alert-danger mb-4 shadow-sm" role="alert">
-                            <p class="fw-semibold mb-2">There were some errors with your submission:</p>
-                            <ul class="mb-0 small">
+                        <div class="alert alert-danger border-0 shadow-sm mb-4">
+                            <ul class="mb-0 small fw-bold">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -58,114 +91,89 @@
                         @csrf
                         @method('PUT')
 
-                        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-4 mb-4 border-bottom pb-4">
-                            
-                            <div class="profile-photo flex-shrink-0">
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-4 mb-5 p-4 bg-light rounded-4">
+                            <div class="profile-photo-wrapper flex-shrink-0">
                                 <img id="profile-preview"
-                                     src="{{ !empty($user->profile_photo) ? asset('storage/' . $user->profile_photo) : asset('images/profile-placeholder.png') }}" 
+                                     src="{{ $user->profile_photo ? asset('storage/' . $user->profile_photo) : 'https://ui-avatars.com/api/?name='.urlencode($user->name).'&background=10b981&color=fff' }}" 
                                      alt="Profile Photo" 
                                      class="w-100 h-100 object-fit-cover">
                             </div>
 
-                            <div class="flex-grow-1">
-                                <label class="d-block fs-5 fw-semibold text-dark mb-2">Change Profile Photo</label>
-                                
+                            <div class="flex-grow-1 text-center text-sm-start">
+                                <label class="d-block fw-bold text-dark mb-2">Profile Picture</label>
                                 <input type="file" name="profile_photo" id="profile_photo_input" accept="image/*" 
-                                        class="form-control" style="background-color: #f8f9fa;">
-                                
-                                <p class="text-muted small mt-2">Recommended: Square image (JPG, PNG, WEBP) — max 4MB.</p>
+                                        class="form-control mb-2">
+                                <p class="text-muted small mb-0">Square JPG, PNG, or WEBP (Max 4MB).</p>
                             </div>
                         </div>
 
                         <div class="row g-4">
-                            
                             <div class="col-12">
-                                <label for="name" class="form-label small fw-bold text-muted">Full Name</label>
+                                <label for="name" class="form-label">Full Name</label>
                                 <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}" required
                                     class="form-control @error('name') is-invalid @enderror">
-                                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-12">
-                                <label for="email" class="form-label small fw-bold text-muted">Email</label>
+                                <label for="email" class="form-label">Email Address</label>
                                 <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" required readonly
-                                    class="form-control bg-light" title="Email cannot be changed here.">
-                                <small class="form-text text-muted">Email address is read-only.</small>
+                                    class="form-control bg-light cursor-not-allowed">
+                                <small class="text-muted italic">Login email cannot be changed.</small>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="mobile" class="form-label small fw-bold text-muted">Phone</label>
+                                <label for="mobile" class="form-label">Phone Number</label>
                                 <input type="text" name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
                                     class="form-control @error('mobile') is-invalid @enderror">
-                                @error('mobile') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
-                                <label for="sex" class="form-label small fw-bold text-muted">Gender</label>
-                                <select name="sex" id="sex" class="form-select @error('sex') is-invalid @enderror">
+                                <label for="sex" class="form-label">Gender</label>
+                                <select name="sex" id="sex" class="form-select">
                                     <option value="">Select</option>
                                     <option value="Male" {{ old('sex', $user->sex) == 'Male' ? 'selected' : '' }}>Male</option>
                                     <option value="Female" {{ old('sex', $user->sex) == 'Female' ? 'selected' : '' }}>Female</option>
                                     <option value="Other" {{ old('sex', $user->sex) == 'Other' ? 'selected' : '' }}>Other</option>
                                 </select>
-                                @error('sex') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
-                                <label for="date_of_birth" class="form-label small fw-bold text-muted">Date of Birth</label>
+                                <label for="date_of_birth" class="form-label">Date of Birth</label>
                                 <input type="date" name="date_of_birth" id="date_of_birth" value="{{ old('date_of_birth', $user->date_of_birth) }}"
-                                    class="form-control @error('date_of_birth') is-invalid @enderror">
-                                @error('date_of_birth') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    class="form-control">
                             </div>
                             
                             <div class="col-md-6">
-                               <label for="age" class="form-label small fw-bold text-muted">Age</label>
+                               <label for="age" class="form-label">Age</label>
                                <input type="number" name="age" id="age" value="{{ old('age', $user->age) }}"
-                                   class="form-control @error('age') is-invalid @enderror">
-                               @error('age') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                   class="form-control">
                             </div>
 
                             <div class="col-md-6">
-                                <label for="position" class="form-label small fw-bold text-muted">Job Title</label>
+                                <label for="position" class="form-label">Job Title</label>
                                 <input type="text" name="position" id="position" value="{{ old('position', $user->position) }}"
-                                    class="form-control bg-light @if(auth()->user()->role !== 'employer') cursor-not-allowed @endif" 
-                                    @if(auth()->user()->role !== 'employer') readonly @endif>
-                                <small class="form-text text-muted">Job title is typically updated by management.</small>
+                                    class="form-control bg-light cursor-not-allowed" readonly>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="date_started" class="form-label small fw-bold text-muted">Date Started</label>
+                                <label for="date_started" class="form-label">Date Started</label>
                                 <input type="date" name="date_started" id="date_started" value="{{ old('date_started', $user->date_started) }}"
-                                    class="form-control bg-light @if(auth()->user()->role !== 'employer') cursor-not-allowed @endif" 
-                                    @if(auth()->user()->role !== 'employer') readonly @endif>
-                                <small class="form-text text-muted">Start date is read-only.</small>
+                                    class="form-control bg-light cursor-not-allowed" readonly>
                             </div>
 
                             <div class="col-12">
-                                <label for="salary" class="form-label small fw-bold text-muted">Salary (GHC)</label>
-                                @if(auth()->user()->role === 'employer')
-                                    <input type="number" name="salary" id="salary" value="{{ old('salary', $user->salary) }}" step="0.01"
-                                        class="form-control @error('salary') is-invalid @enderror">
-                                    <small class="form-text text-muted">Only accessible by Employer role.</small>
-                                @else
-                                    <input type="text" value="{{ 'GHC ' . number_format($user->salary, 2) }}" readonly
-                                        class="form-control bg-light text-muted cursor-not-allowed">
-                                    <small class="form-text text-muted">Salary is read-only for employees.</small>
-                                @endif
-                                @error('salary') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label for="salary" class="form-label">Salary (GHC)</label>
+                                <input type="text" value="GHC {{ number_format($user->salary ?? 0, 2) }}" readonly
+                                       class="form-control bg-light text-muted cursor-not-allowed">
                             </div>
                         </div>
 
-                        <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center">
-                            <a href="{{ route('dashboard') }}"
-                               class="btn btn-outline-secondary">
-                                <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 1rem; height: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                                Back to Dashboard
+                        <div class="mt-5 pt-4 border-top d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                                &larr; Cancel
                             </a>
-                            <button type="submit" 
-                                    class="btn btn-success btn-lg shadow-sm">
-                                <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-3m-4-6l-9 9m1-4h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3"></path></svg>
-                                Save Changes
+                            <button type="submit" class="btn btn-success shadow-sm px-5">
+                                Save Profile Changes
                             </button>
                         </div>
                     </form>
@@ -193,6 +201,5 @@
             }
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>

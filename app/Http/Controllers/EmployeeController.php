@@ -27,7 +27,7 @@ class EmployeeController extends Controller
     {
         $user = Auth::user();
 
-        // Base validation rules (for both employer & employee)
+        // Base validation rules
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
@@ -47,7 +47,7 @@ class EmployeeController extends Controller
 
         $request->validate($rules);
 
-        // Update fields for everyone
+        // Map general fields
         $updateData = [
             'name' => $request->input('name'),
             'email' => $request->input('email'),
@@ -57,7 +57,6 @@ class EmployeeController extends Controller
             'date_of_birth' => $request->input('date_of_birth'),
             'position' => $request->input('position'),
             'date_started' => $request->input('date_started'),
-    
         ];
 
         // Only employer can update salary
@@ -65,16 +64,17 @@ class EmployeeController extends Controller
             $updateData['salary'] = $request->input('salary');
         }
 
-        // Handle profile photo upload
+        // --- PROFILE PHOTO LOGIC ---
         if ($request->hasFile('profile_photo')) {
-
-            // Delete old photo
+            // 1. Delete old photo if it exists
             if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
                 Storage::disk('public')->delete($user->profile_photo);
             }
 
-            // Save new photo
+            // 2. Store new photo in 'public/profile_photos'
             $path = $request->file('profile_photo')->store('profile_photos', 'public');
+            
+            // 3. Add to update array
             $updateData['profile_photo'] = $path;
         }
 
@@ -82,4 +82,4 @@ class EmployeeController extends Controller
 
         return redirect()->route('employee.dashboard')->with('success', 'Profile updated successfully!');
     }
-}   // ← THIS WAS MISSING
+}
