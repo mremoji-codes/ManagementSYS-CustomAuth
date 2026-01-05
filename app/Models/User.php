@@ -17,23 +17,21 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'mobile',
-    'date_of_birth',
-    'age',
-    'sex',
-    'position',
-    'salary',
-    'date_started',
-    'role',
-    'status',
-    'profile_photo',
-];
-
-
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'mobile',
+        'date_of_birth',
+        'age',
+        'sex',
+        'position',
+        'salary',
+        'date_started',
+        'role',
+        'status',
+        'profile_photo',
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -58,7 +56,7 @@ protected $fillable = [
         ];
     }
 
-    //  Adding these functions inside the class
+    // Role Checks
     public function isEmployer()
     {
         return $this->role === 'employer';
@@ -67,5 +65,11 @@ protected $fillable = [
     public function isEmployee()
     {
         return $this->role === 'employee';
+    }
+
+    // 🔗 RELATIONSHIP: A user has many leave requests
+    public function leaveRequests()
+    {
+        return $this->hasMany(LeaveRequest::class);
     }
 }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Models\LeaveRequest; 
+use App\Models\Notice; // 🆕 Added to access the Notice model
 
 class EmployeeController extends Controller
 {
@@ -12,7 +14,17 @@ class EmployeeController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        return view('employee.dashboard', compact('user'));
+        
+        // Fetch the logged-in user's leave requests to show on their dashboard
+        $leaveRequests = LeaveRequest::where('user_id', $user->id)
+                            ->orderBy('created_at', 'desc')
+                            ->get();
+
+        // 🆕 Fetch all notices, newest first, to show on the notice board
+        $notices = Notice::latest()->get();
+
+        // Updated compact() to include 'notices'
+        return view('employee.dashboard', compact('user', 'leaveRequests', 'notices'));
     }
 
     // Edit Profile Page

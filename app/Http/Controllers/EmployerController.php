@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Notice; // 🆕 Added to access the Notice model
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rules\Password; // Added for secure password validation
+use Illuminate\Validation\Rules\Password; 
 
 class EmployerController extends Controller
 {
@@ -28,8 +29,12 @@ class EmployerController extends Controller
                              ->count();
 
         $employerCount = User::where('role', 'employer')->count();
+        
+        // 🆕 Fetch all notices to display on the Employer's management board
+        $notices = Notice::latest()->get();
                              
-        return view('employer.dashboard', compact('employeeCount', 'newHiresCount', 'employerCount'));
+        // 🆕 Added 'notices' to the compact array
+        return view('employer.dashboard', compact('employeeCount', 'newHiresCount', 'employerCount', 'notices'));
     }
 
     // =========================================================================
@@ -66,16 +71,13 @@ class EmployerController extends Controller
                          ->with('success', 'Profile updated successfully!');
     }
 
-    /**
-     * Handle Password Update for the Employer
-     */
     public function updatePassword(Request $request)
     {
         $this->ensureEmployer();
         $user = Auth::user();
 
         $validated = $request->validate([
-            'current_password' => ['required', 'current_password'], // Checks if it matches current DB password
+            'current_password' => ['required', 'current_password'], 
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 

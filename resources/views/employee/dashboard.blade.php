@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Employee Dashboard - ManagementSYS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/m_logo.svg') }}?v=1">
 
     <style>
-        /* Light Gray Background for the Body (Tailwind's bg-gray-100 equivalent) */
         body {
             background-color: #f8f9fa; 
         }
@@ -17,12 +17,30 @@
             height: 128px;
             border-radius: 50%;
             overflow: hidden;
-            border: 4px solid #e0f2f1; /* Light Indigo border equivalent */
+            border: 4px solid #e0f2f1;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
         }
         .text-indigo {
-            color: #4f46e5; /* Tailwind indigo-600 */
+            color: #4f46e5;
         }
+        .bg-emerald {
+            background-color: #059669 !important;
+            border-color: #059669 !important;
+        }
+        .bg-emerald:hover {
+            background-color: #047857 !important;
+        }
+        /* Notice Board Custom Styles */
+        .notice-card {
+            border-left: 5px solid;
+            transition: transform 0.2s;
+        }
+        .notice-card:hover {
+            transform: scale(1.01);
+        }
+        .border-priority-high { border-left-color: #dc3545; }
+        .border-priority-medium { border-left-color: #ffc107; }
+        .border-priority-low { border-left-color: #0dcaf0; }
     </style>
 </head>
 <body>
@@ -53,12 +71,13 @@
                 </div>
 
                 @if(session('success'))
-                    <div class="alert alert-success shadow-sm" role="alert">
-                        <p class="mb-0">{{ session('success') }}</p>
+                    <div class="alert alert-success shadow-sm alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
                 
-                <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5">
+                <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5 mb-4">
                     
                     <div class="row g-4 border-bottom pb-4 mb-4 align-items-center">
                         
@@ -83,11 +102,15 @@
                                 <p class="fs-5 fw-medium text-indigo">{{ $user->position ?? 'Role Pending' }}</p>
                                 <p class="text-muted">{{ $user->email }}</p>
 
-                                <div class="mt-3">
+                                <div class="mt-3 d-flex flex-wrap justify-content-center justify-content-md-start gap-2">
                                     <a href="{{ route('employee.edit') }}"
-                                        class="btn btn-primary btn-lg shadow-sm hover-shadow-lg transition-all">
-                                        <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                        Update My Profile
+                                        class="btn btn-primary shadow-sm">
+                                        <i class="fas fa-user-edit me-2"></i>Update My Profile
+                                    </a>
+
+                                    <a href="{{ route('employee.leave.create') }}"
+                                        class="btn btn-success bg-emerald shadow-sm">
+                                        <i class="fas fa-calendar-plus me-2"></i>Request Leave
                                     </a>
                                 </div>
                             </div>
@@ -95,7 +118,6 @@
                     </div>
 
                     <div class="row g-5">
-
                         <div class="col-lg-4">
                             <h3 class="fs-5 fw-semibold text-dark mb-4 border-bottom pb-2">Personal Details</h3>
                             <dl class="row g-3">
@@ -144,7 +166,6 @@
 
                         <div class="col-lg-4 border-start-lg ps-lg-4 pt-4 pt-lg-0">
                             <h3 class="fs-5 fw-semibold text-dark mb-4 border-bottom pb-2">Compensation</h3>
-                            
                             <div class="bg-light p-4 rounded-3 shadow-sm mb-4">
                                 <dt class="text-sm text-secondary">Current Gross Salary</dt>
                                 <dd class="mt-1 fs-1 fw-bolder text-success">
@@ -156,13 +177,76 @@
                             <div class="bg-light p-4 rounded-3 shadow-sm">
                                 <dt class="text-sm text-secondary">Payroll Cycle</dt>
                                 <dd class="mt-1 fs-4 fw-bold text-dark">Monthly</dd>
-                                <p class="small text-muted mt-2">Next payment date: (Requires backend data)</p>
+                                <p class="small text-muted mt-2">Next payment date: (Calculated monthly)</p>
                             </div>
                         </div>
-
-                    </div>
                     </div>
                 </div>
+
+                @if(isset($notices) && $notices->count() > 0)
+                <div class="mb-4">
+                    <h3 class="fs-5 fw-semibold text-dark mb-3">
+                        <i class="fas fa-bullhorn me-2 text-primary"></i>Company Announcements
+                    </h3>
+                    <div class="row g-3">
+                        @foreach($notices as $notice)
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 rounded-3 notice-card border-priority-{{ $notice->priority }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="fw-bold mb-0 text-dark">{{ $notice->title }}</h6>
+                                        <small class="text-muted" style="font-size: 0.75rem;">{{ $notice->created_at->diffForHumans() }}</small>
+                                    </div>
+                                    <p class="text-secondary small mb-0">{{ $notice->content }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <div class="card shadow-lg border-0 rounded-4 p-4">
+                    <h3 class="fs-5 fw-semibold text-dark mb-4 border-bottom pb-2">
+                        <i class="fas fa-history me-2 text-secondary"></i>Recent Leave Requests
+                    </h3>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($leaveRequests as $leave)
+                                    <tr>
+                                        <td class="fw-bold">{{ $leave->leave_type }}</td>
+                                        <td>{{ $leave->start_date }}</td>
+                                        <td>{{ $leave->end_date }}</td>
+                                        <td>
+                                            @if($leave->status == 'pending')
+                                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                                            @elseif($leave->status == 'approved')
+                                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Approved</span>
+                                            @else
+                                                <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Rejected</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">You haven't submitted any leave requests yet.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 

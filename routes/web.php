@@ -4,15 +4,15 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 // Custom Auth Controllers
-use App\Http\Controllers\Auth\AuthenticatedSessionController; // <-- ADDED
-use App\Http\Controllers\Auth\RegisteredUserController;       // <-- ADDED (for next step)
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 // Existing Controllers
 use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\EmployeeController;
-use App\Providers\RouteServiceProvider;
-
-use App\Http\Controllers\Auth\PasswordResetLinkController;    // <-- NEW
-use App\Http\Controllers\Auth\NewPasswordController;          // <-- NEW
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\NoticeController; 
 
 /*
 |--------------------------------------------------------------------------
@@ -20,63 +20,35 @@ use App\Http\Controllers\Auth\NewPasswordController;          // <-- NEW
 |--------------------------------------------------------------------------
 */
 
-// 🔑 AUTHENTICATION ROUTES (Manual Implementation)
-Route::middleware('guest')->group(function () {
-
-    // ➡️ LOGIN Routes (Existing)
-    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
-
-    // ➡️ REGISTRATION Routes (Existing)
-    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('/register', [RegisteredUserController::class, 'store']);
-    
-    // ➡️ PASSWORD RESET Routes (NEW)
-    // 1. Forgot Password Form (Show)
-    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])
-        ->name('password.request');
-
-    // 2. Forgot Password Submission (Send Link)
-    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->name('password.email');
-
-    // 3. Reset Password Form (Show after clicking link)
-    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
-        ->name('password.reset');
-
-    // 4. Reset Password Submission (Update Password)
-    Route::post('/reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
-});
-
-
-// ... rest of your routes
-// Routes accessible only to guests (not logged in)
+// 🔑 GUEST ROUTES (Login, Register, Password Reset)
 Route::middleware('guest')->group(function () {
 
     // ➡️ LOGIN Routes
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
-    // ➡️ REGISTRATION Routes (To be implemented in the next step)
+    // ➡️ REGISTRATION Routes
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
     
-    // NOTE: Password Reset routes (forgot, reset) would also go here.
+    // ➡️ PASSWORD RESET Routes
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    // Added specific name to match standard Laravel expectations
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
 
-// ➡️ LOGOUT Route (Accessible only to logged-in users)
-// **REPLACED** your existing custom logout route with the one pointing to the new controller
+// ➡️ LOGOUT Route
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
 
 // -----------------------------------------------------------------------
-// 🌍 PUBLIC & AUTHENTICATED ROUTES
+// 🌍 PUBLIC ROUTES
 // -----------------------------------------------------------------------
 
-// 🔹 Welcome Page and About Page
 Route::get('/', function () {
     return view('welcome');
 });
@@ -84,6 +56,11 @@ Route::get('/', function () {
 Route::get('/about', function () {
     return view('about');
 })->name('about');
+
+
+// -----------------------------------------------------------------------
+// 🔒 AUTHENTICATED ROUTES
+// -----------------------------------------------------------------------
 
 // 🔹 Employee Dashboard and Profile
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -96,16 +73,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::put('/employee/update', [EmployeeController::class, 'update'])
         ->name('employee.update');
+
+    // 🆕 LEAVE REQUEST ROUTES (FOR EMPLOYEES)
+    Route::get('/employee/leave/create', [LeaveRequestController::class, 'create'])
+        ->name('employee.leave.create');
+        
+    Route::post('/employee/leave/store', [LeaveRequestController::class, 'store'])
+        ->name('employee.leave.store');
 });
 
-// 🔹 Fallback Dashboard Redirect (sends users to the correct dashboard based on role)
+// 🔹 Fallback Dashboard Redirect
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
     if (!$user) {
-        // Since the 'auth' middleware should handle this, 
-        // we can rely on it to redirect to the 'login' route defined above.
-        // But for explicit clarity, we keep the check.
         return redirect()->route('login'); 
     }
 
@@ -121,7 +102,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-// 🔹 Employer-only routes (for managing employees, dashboard, and profile)
+// 🔹 Employer-only routes
 Route::middleware(['auth', 'verified'])
     ->prefix('employer')
     ->name('employer.')
@@ -132,16 +113,11 @@ Route::middleware(['auth', 'verified'])
 
         // 🟢 Employer Profile Routes
         Route::get('/profile', [EmployerController::class, 'showProfile'])->name('profile.show');
-        
-        // --- PROFILE EDIT & UPDATE ROUTES ---
         Route::get('/profile/edit', [EmployerController::class, 'editProfile'])->name('profile.edit');
         Route::put('/profile/update', [EmployerController::class, 'updateProfile'])->name('profile.update');
-        
-        // 🔑 NEW: PASSWORD UPDATE ROUTE
         Route::put('/profile/password', [EmployerController::class, 'updatePassword'])->name('profile.password.update');
-        // ------------------------------
         
-        // Employee CRUD Routes (EXISTING)
+        // 🟢 Employee CRUD Routes
         Route::get('/employees', [EmployerController::class, 'index'])->name('employees.index');
         Route::get('/employees/create', [EmployerController::class, 'create'])->name('employees.create');
         Route::post('/employees', [EmployerController::class, 'store'])->name('employees.store');
@@ -149,4 +125,18 @@ Route::middleware(['auth', 'verified'])
         Route::put('/employees/{id}', [EmployerController::class, 'update'])->name('employees.update');
         Route::delete('/employees/{id}', [EmployerController::class, 'destroy'])->name('employees.destroy');
 
+        // 🆕 LEAVE MANAGEMENT ROUTES
+        Route::get('/leaves', [LeaveRequestController::class, 'index'])->name('leaves.index');
+        Route::patch('/leaves/{id}/status', [LeaveRequestController::class, 'updateStatus'])->name('leaves.updateStatus');
     });
+
+// -----------------------------------------------------------------------
+// 📢 NOTICE BOARD ROUTES (FIXED: Added notices.index)
+// -----------------------------------------------------------------------
+Route::middleware(['auth', 'verified'])->group(function () {
+    // This route was missing and caused your error
+    Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
+    
+    Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
+    Route::delete('/notices/{id}', [NoticeController::class, 'destroy'])->name('notices.destroy');
+});
