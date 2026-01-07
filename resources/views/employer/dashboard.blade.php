@@ -82,6 +82,20 @@
             margin: 0.25rem 0;
         }
 
+        /* 🆕 Pulse animation for real-time alerts */
+        .pulse-animation {
+            animation: pulse-red 2s infinite;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 0.8rem;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+        }
+
         /* Analytics Surface */
         .chart-surface {
             background: white;
@@ -90,7 +104,6 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
         }
 
-        /* Stretched Link to make whole card clickable */
         .stretched-link::after {
             position: absolute;
             top: 0; right: 0; bottom: 0; left: 0;
@@ -98,7 +111,6 @@
             content: "";
         }
 
-        /* Footer Styling */
         .dashboard-footer {
             margin-top: 4rem;
             padding: 2rem 0;
@@ -147,14 +159,19 @@
 
             <div class="col-xl-3 col-md-6">
                 <div class="stunning-card p-4">
-                    <div class="icon-box" style="background: #fff1f2; color: #e11d48;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-calendar-check-fill" viewBox="0 0 16 16">
-                            <path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z"/>
-                        </svg>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="icon-box" style="background: #fff1f2; color: #e11d48;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-calendar-check-fill" viewBox="0 0 16 16">
+                                <path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z"/>
+                            </svg>
+                        </div>
+                        @if($pendingLeaveCount > 0)
+                            <span class="badge rounded-pill bg-danger shadow-sm pulse-animation">ACTION REQUIRED</span>
+                        @endif
                     </div>
                     <div class="metric-title">Leave Requests</div>
-                    <div class="metric-value">Pending</div>
-                    <div class="text-danger small fw-bold">Manage Approvals &rarr;</div>
+                    <div class="metric-value">{{ $pendingLeaveCount > 0 ? $pendingLeaveCount : 'None' }}</div>
+                    <div class="text-danger small fw-bold">{{ $pendingLeaveCount > 0 ? 'Manage Approvals' : 'View History' }} &rarr;</div>
                     <a href="{{ route('employer.leaves.index') }}" class="stretched-link"></a>
                 </div>
             </div>
@@ -204,22 +221,18 @@
             <div class="col-lg-4">
                 <div class="chart-surface h-100 bg-white">
                     <h5 class="fw-bold mb-4">System Summary</h5>
-                    
                     <div class="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center">
                         <span class="text-muted small fw-bold">Active Employees</span>
                         <span class="badge rounded-pill bg-success px-3">{{ $employeeCount }}</span>
                     </div>
-
                     <div class="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center">
                         <span class="text-muted small fw-bold">Admin Accounts</span>
                         <span class="badge rounded-pill bg-dark px-3">{{ $employerCount }}</span>
                     </div>
-
                     <div class="p-3 bg-light rounded-3 mb-4 d-flex justify-content-between align-items-center">
                         <span class="text-muted small fw-bold">New This Month</span>
                         <span class="badge rounded-pill bg-primary px-3">{{ $newHiresCount }}</span>
                     </div>
-
                     <div class="border-top pt-4">
                         <h6 class="fw-bold mb-3">Quick Actions</h6>
                         <a href="{{ route('employer.employees.create') }}" class="btn btn-sm btn-outline-success w-100 mb-2 py-2">Add New Employee</a>
@@ -234,7 +247,7 @@
         <footer class="dashboard-footer text-center">
             <div class="container">
                 <p class="mb-1 fw-bold text-dark">Management SYS</p>
-                <p class="small mb-0">&copy; {{ date('Y') }} All Rights Reserved. Built for secure workforce management.</p>
+                <p class="small mb-0">&copy; {{ date('Y') }} All Rights Reserved.</p>
             </div>
         </footer>
     </div>
@@ -243,17 +256,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const ctx = document.getElementById('personnelPieChart').getContext('2d');
-            
             new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: ['Staff Employees', 'Administrators'],
                     datasets: [{
                         data: [{{ $employeeCount }}, {{ $employerCount }}],
-                        backgroundColor: [
-                            '#10b981', // Emerald Green
-                            '#0f172a'  // Sidebar Navy
-                        ],
+                        backgroundColor: ['#10b981', '#0f172a'],
                         hoverOffset: 25,
                         borderWidth: 6,
                         borderColor: '#ffffff'
@@ -268,24 +277,9 @@
                             labels: {
                                 padding: 30,
                                 usePointStyle: true,
-                                font: {
-                                    size: 14,
-                                    weight: '600',
-                                    family: "'Inter', sans-serif"
-                                }
+                                font: { size: 14, weight: '600' }
                             }
-                        },
-                        tooltip: {
-                            backgroundColor: '#1e293b',
-                            padding: 12,
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 },
-                            cornerRadius: 8,
-                            displayColors: true
                         }
-                    },
-                    layout: {
-                        padding: 10
                     }
                 }
             });

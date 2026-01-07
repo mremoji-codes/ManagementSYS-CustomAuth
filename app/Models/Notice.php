@@ -9,10 +9,11 @@ class Notice extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = ['title', 'content', 'priority', 'user_id'];
+
+    // 🆕 ADDED: Relationship to track which users have read this notice
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'notice_user')->withTimestamps();
+    }
 }

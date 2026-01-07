@@ -72,4 +72,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(LeaveRequest::class);
     }
+
+    public function notices()
+    {
+    // This connects the user to the notices via the notice_user table
+       return $this->belongsToMany(\App\Models\Notice::class, 'notice_user');
+    }
+    
 }

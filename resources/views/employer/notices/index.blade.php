@@ -11,7 +11,8 @@
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h5 class="fw-bold mb-3"><i class="fas fa-bullhorn me-2 text-success"></i>Create New Notice</h5>
-                    <form action="{{ route('notices.store') }}" method="POST">
+                    {{-- Updated route to employer naming convention --}}
+                    <form action="{{ route('employer.notices.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label class="small fw-bold text-muted">Title</label>
@@ -55,13 +56,20 @@
                                     </small>
                                 </div>
                                 
-                                <form action="{{ route('notices.destroy', $notice->id) }}" method="POST" onsubmit="return confirm('Permanently delete this announcement?')">
-                                    @csrf 
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0">
-                                        <i class="fas fa-trash-alt"></i> Delete
-                                    </button>
-                                </form>
+                                <div class="d-flex gap-2">
+                                    {{-- 🆕 Edit Button Added Here --}}
+                                    <a href="{{ route('employer.notices.edit', $notice->id) }}" class="btn btn-sm btn-outline-primary border-0">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+
+                                    <form action="{{ route('employer.notices.destroy', $notice->id) }}" method="POST" onsubmit="return confirm('Permanently delete this announcement?')">
+                                        @csrf 
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     @empty

@@ -13,6 +13,8 @@ use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\NoticeController; 
+// 🆕 Added the Employer Notice Controller
+use App\Http\Controllers\EmployerNoticeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +35,6 @@ Route::middleware('guest')->group(function () {
     
     // ➡️ PASSWORD RESET Routes
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
-    // Added specific name to match standard Laravel expectations
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
@@ -80,6 +81,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
     Route::post('/employee/leave/store', [LeaveRequestController::class, 'store'])
         ->name('employee.leave.store');
+
+    // 🔔 NEW: Employee Specific Management (Clear/Delete/View All)
+    Route::get('/employee/notices', [EmployeeController::class, 'allNotices'])
+        ->name('employee.notices.index');
+
+    Route::delete('/employee/leave/{id}', [EmployeeController::class, 'deleteLeave'])
+        ->name('employee.leave.delete');
+
+    Route::delete('/employee/leave-clear-all', [EmployeeController::class, 'clearAllLeaves'])
+        ->name('employee.leave.clearAll');
 });
 
 // 🔹 Fallback Dashboard Redirect
@@ -128,15 +139,26 @@ Route::middleware(['auth', 'verified'])
         // 🆕 LEAVE MANAGEMENT ROUTES
         Route::get('/leaves', [LeaveRequestController::class, 'index'])->name('leaves.index');
         Route::patch('/leaves/{id}/status', [LeaveRequestController::class, 'updateStatus'])->name('leaves.updateStatus');
+
+        // 🆕 ANNOUNCEMENT (NOTICE) MANAGEMENT ROUTES FOR EMPLOYER
+        // We added .parameters() to fix the "Missing parameter: announcement" error
+        Route::resource('announcements', EmployerNoticeController::class)->parameters([
+            'announcements' => 'notice' 
+        ])->names([
+            'index'   => 'notices.index',
+            'create'  => 'notices.create',
+            'store'   => 'notices.store',
+            'edit'    => 'notices.edit',
+            'update'  => 'notices.update',
+            'destroy' => 'notices.destroy',
+        ]);
     });
 
 // -----------------------------------------------------------------------
-// 📢 NOTICE BOARD ROUTES (FIXED: Added notices.index)
+// 📢 NOTICE BOARD ROUTES (GENERAL VIEW)
 // -----------------------------------------------------------------------
 Route::middleware(['auth', 'verified'])->group(function () {
-    // This route was missing and caused your error
     Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
-    
     Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
     Route::delete('/notices/{id}', [NoticeController::class, 'destroy'])->name('notices.destroy');
 });

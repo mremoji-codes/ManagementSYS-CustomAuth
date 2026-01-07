@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use App\Models\Notice; // 🆕 Added to access the Notice model
+use App\Models\Notice; 
+use App\Models\LeaveRequest; // 🆕 Added to access the LeaveRequest model
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password; 
@@ -30,16 +31,27 @@ class EmployerController extends Controller
 
         $employerCount = User::where('role', 'employer')->count();
         
-        // 🆕 Fetch all notices to display on the Employer's management board
+        // 🆕 Fetch the count of pending leave requests
+        $pendingLeaveCount = LeaveRequest::where('status', 'pending')->count();
+        
+        // Fetch all notices to display on the Employer's management board
         $notices = Notice::latest()->get();
                              
-        // 🆕 Added 'notices' to the compact array
-        return view('employer.dashboard', compact('employeeCount', 'newHiresCount', 'employerCount', 'notices'));
+        // 🆕 Added 'pendingLeaveCount' to the compact array
+        return view('employer.dashboard', compact(
+            'employeeCount', 
+            'newHiresCount', 
+            'employerCount', 
+            'notices', 
+            'pendingLeaveCount'
+        ));
     }
 
     // =========================================================================
-    // EMPLOYER SELF-PROFILE METHODS
+    // EMPLOYER SELF-PROFILE METHODS (Rest of the code remains unchanged)
     // =========================================================================
+    
+    // ... (All other methods kept exactly as they were) ...
 
     public function showProfile()
     {
@@ -87,10 +99,6 @@ class EmployerController extends Controller
 
         return back()->with('success', 'Password updated successfully!');
     }
-
-    // =========================================================================
-    // EMPLOYEE MANAGEMENT METHODS
-    // =========================================================================
 
     public function index()
     {
