@@ -42,6 +42,20 @@
         .border-priority-medium { border-left-color: #ffc107; }
         .border-priority-low { border-left-color: #0dcaf0; }
         
+        /* 🆕 NEW: Glowing Pulse Animation for Notifications */
+        .pulse-notif {
+            animation: pulse-blue 2s infinite;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+
+        @keyframes pulse-blue {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(13, 110, 253, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+        }
+
         /* Dropdown wrap fix */
         .whitespace-normal {
             white-space: normal !important;
@@ -60,9 +74,13 @@
                 <div class="dropdown me-3">
                     <a class="position-relative text-dark" href="#" id="noticeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-bell fs-5"></i>
-                        @if(isset($unreadCount) && $unreadCount > 0)
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                                {{ $unreadCount }}
+                        {{-- 🆕 Logical Badge: Shows if any notice was updated in the last 24 hours --}}
+                        @php 
+                            $recentCount = $notices->where('updated_at', '>=', now()->subDay())->count();
+                        @endphp
+                        @if($recentCount > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary pulse-notif">
+                                {{ $recentCount }}
                             </span>
                         @endif
                     </a>
@@ -72,15 +90,16 @@
                             <a href="{{ route('employee.notices.index') }}" class="text-primary small text-decoration-none" style="font-size: 0.7rem;">View All</a>
                         </div>
                         
-                        {{-- 🟢 UPDATED DROPDOWN LOOP WITH UNREAD INDICATORS --}}
                         @forelse($notices as $notice)
                             @php 
-                                $isUnread = !$user->notices->contains($notice->id); 
+                                $isRecentlyUpdated = $notice->updated_at >= now()->subDay();
                             @endphp
-                            <a href="{{ route('employee.notices.index') }}" class="dropdown-item py-3 border-bottom whitespace-normal {{ $isUnread ? 'bg-light' : '' }}">
+                            <a href="{{ route('employee.notices.index') }}" class="dropdown-item py-3 border-bottom whitespace-normal {{ $isRecentlyUpdated ? 'bg-light' : '' }}">
                                 <div class="d-flex justify-content-between">
                                     <strong class="small text-dark">
-                                        @if($isUnread) <i class="fas fa-circle text-primary me-1" style="font-size: 0.5rem;"></i> @endif
+                                        @if($isRecentlyUpdated) 
+                                            <i class="fas fa-circle text-primary me-1" style="font-size: 0.5rem;"></i> 
+                                        @endif
                                         {{ $notice->title }}
                                     </strong>
                                     <small class="text-muted" style="font-size: 0.7rem;">{{ $notice->created_at->diffForHumans() }}</small>
@@ -90,7 +109,6 @@
                         @empty
                             <div class="text-center py-3 text-muted small">No new announcements</div>
                         @endforelse
-                        {{-- 🟢 END UPDATED LOOP --}}
 
                     </div>
                 </div>
@@ -245,7 +263,15 @@
                             <div class="card shadow-sm border-0 rounded-3 notice-card border-priority-{{ $notice->priority }}">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="fw-bold mb-0 text-dark">{{ $notice->title }}</h6>
+                                        <h6 class="fw-bold mb-0 text-dark">
+                                            {{ $notice->title }}
+                                            {{-- 🆕 Inline Badge for Edited/New content --}}
+                                            @if($notice->updated_at >= now()->subDay())
+                                                <span class="badge bg-primary ms-1 pulse-notif" style="font-size: 0.5rem;">
+                                                    {{ $notice->created_at == $notice->updated_at ? 'NEW' : 'UPDATED' }}
+                                                </span>
+                                            @endif
+                                        </h6>
                                         <small class="text-muted" style="font-size: 0.75rem;">{{ $notice->created_at->diffForHumans() }}</small>
                                     </div>
                                     <p class="text-secondary small mb-0">{{ Str::limit($notice->content, 100) }}</p>
